@@ -1,0 +1,614 @@
+Logic programming based GUI framework
+I'm struggling with an idea of Logic Programming applied to GUI framework design. How does one program GUI with logic programming toolkit?
+First, there are two aspects of GUI design -- structure, and dynamics. The structure seems simple: its a hierarchy of widgets. Therefore all we need is the binary relation "Widget A is parent of B". Now, it seems that I need to name each and every widget being instantiated -- an awkward proposition which is unnecessary in traditional OOP approach. So, what is widget identity and why do we need one?
+Now the dynamics is more tricky. Each widget has a way to react onto events, is this kind of automaton? This is very different to what logic programming person is accustomed to: given a world one queries it.
+I would appreciate any references to existing research. In the absence of thereof, please share your thoughts.
+By Tegiri Nenashi at 2010-07-01 21:51 | LtU Forum | previous forum topic | next forum topic | other blogs | 10839 reads
+Comment viewing options
+    Save settings
+Select your preferred way to display the comments and click "Save settings" to activate your changes.
+XPCE: the SWI-Prolog native GUI library
+If you are just looking for an actual library for making GUI applications in a logic language, check out XPCE.
+
+XPCE is an object-oriented library for building Graphical User Interfaces (GUIâ€™s) for symbolic
+or strongly typed languages. It provides high level GUI specification primitives and dynamic
+modification of the program to allow for rapid development of interfaces. It integrates a graphical
+tool for the specification of interfaces, in addition to powerful and uniform mechanisms to
+facilitate automatic generation of GUIâ€™s.
+
+By Greg Buchholz at Thu, 2010-07-01 22:11 | login or register to post comments
+Suggestions
+I'm not especially fond of the 'hierarchy of widgets' model. There are some relationships (Widget X is visible if Widget Y is visible; Widget X appears to the left of Widget Y). Maintaining these relationships is a reasonable case for reactive programming.
+
+Widget identity should be declarative or derived logically. You do not want anything similar to 'new Widget'. Instead, widgets can be named by arbitrary values (integers, lists, strings, etc.) and the GUI display system can browse a list of all visible widgets (each named by a flexible value). This makes the active widget set considerably more declarative and reactive, i.e. it would be easy to logically declare widgets as a logical production from an XML document or Relational result set, and even to keep this up-to-date as the XML document or result-set changes.
+
+You want your UI to have local and non-local effects - i.e. on button presses, mouse movements. Local effects can generally be treated as navigation or browsing of a logical view (aka a 'query'). Animations can be treated the same, specifying some concept of Time in the view to support automated 'navigation' over time. Again, this relates to reactive programming.
+
+Even typing characters into an edit-box can be considered as navigating to a new view where the edit-box has the given character. One can go either way with edit-boxes, depending on whether their contents should be shared among users (editing external resource) or unique to a view (thus bookmarkable, part of session history, etc.).
+
+Non-local effects can often be handled in a more Restful manner - using POST, for example, or some sort of AJAX and WebSockets.
+
+You could look up Dedalus (Datalog in Time and Space), timed Concurrent Constraint programming, and Functional Reactive Programming for some inspiration. It wouldn't be difficult to apply FRP concepts to a Logic Programming framework.
+
+By dmbarbour at Thu, 2010-07-01 22:25 | login or register to post comments
+Listen to an expert
+Vasili Bykov's blog entry: On UI layout
+
+Vasili is the architect of the Newspeak UI system known as Brazil.
+
+He gives a pretty good overview of layout in GUI frameworks. Like many I'm sure, I made the mistake of not initially realizing flow layouts cannot be solved using a system of linear equations (with a tool like Cassowary). For Cassowary, I've brought it up twice before on LtU [1] [2]. Note the use of SOUL here [3].
+
+As for naming each widget being instantiated, I don't see the point. You simply need the ability to define a graph of objects. In Bykov's post above, he notes how a Windows model and a Container model are no different and that a Container merely governs a particular layout policy that is usually a special case of a linear system solver. Even the original Windowing systems created at XEROX Parc for the Alto were Container-based systems. Actually, if I recall correctly, there is no such thing as a Window object in Smalltalk-80 (despite using a Window-Icon-Menu-Pointing device metaphor), because there is no need for one. What's important is the Controllers, because they govern what the user sees and how they see it, including the order in which Views are drawn to the screen. Stuff like Win32 and X came later, and arguably were inferior in every way imaginable to both Smalltalk-80 model and Cedar Graphics.
+
+I've been searching for other good introductory material, simply because I have a pet sin of accumulating knowledge I don't put to enough use. James Gosling's book on the NEWS system is a good overview of different approaches to building window management subsystems. He discusses all kinds of trade-offs. It is still only about 5% of what I was hoping for. I thought it was pretty impressive, though, considering when it was written. Also, I believe Ted Kaehler's Smalltalk book is where I got most of the details about the original Smalltalk UI design.
+
+There's really not a lot of coherent information on how to design amazing graphical applications. It is all scattered. It is especially hard if you want to do what I am doing and (trying to) synthesizing environments from grammars.
+
+I am not sure if this post by me was helpful, or just too much talkity-talk, but I'm writing to a younger version of myself, because the question you asked is the one I had on the tip of my tongue from the age of 13 through about 23.
+
+[3] Though, the most interesting idea I've seen so far for GUIs is from Viewpoints Research Institute, with the domain-specific language Nile, which is a mathematical transformations executable specification language.
+
+By Z-Bo at Fri, 2010-07-02 02:07 | login or register to post comments
+Naming and Graphs
+As for naming each widget being instantiated, I don't see the point. You simply need the ability to define a graph of objects.
+
+How are you to define a graph of objects without labels for the vertices? Are you assuming a fully acyclic graph of relationships between widgets? (If so, I suspect you'll be disappointed by expressiveness.)
+
+Keep in mind that "object" systems usually produce an implicit name on each call to a "new" operator.
+
+By dmbarbour at Fri, 2010-07-02 02:11 | login or register to post comments
+Yes, most windowing libraries I believe assume DAG
+WPF assumes a DAG; in order to circumvent this "logical tree" relationship they allow you to "Freeze" an object, which is effectively just a trick to prevent aliasing and keep the DAG a DAG.
+
+By Z-Bo at Fri, 2010-07-02 02:20 | login or register to post comments
+Limited DAGs
+XAML includes x:Name and x:Uid attributes for relationships other than simple containment. And for WPF one adds a hybrid mix of imperative and reactive DOM-like scripting to extend and maintain these relationships.
+
+If we're aiming for a Logic based UI, our goals should be to have logic programming replace most or all of interaction scripting, and declare these relationships. Attempting to produce a DAG is more likely to get in the way than serve us productively.
+
+By dmbarbour at Fri, 2010-07-02 02:47 | login or register to post comments
+1) x:Name is gross and x:Uid
+1) x:Name is gross and x:Uid is not even gauranteed to be unique by a MS-XAML specification-compliant XAML or BAML processor. XAML was simply never designed by a programming language design team. Although one of its originators once wrote an ode to Scheme in MSDN Magazine and is an expert in XML, he is not trained in programming language theory.
+
+2) Are you referring to the mixture of C# code with XAML code? Historically, the WPF Controls team implemented much of what I consider to be the "bad ideas" in WPF in order to facilitate rapid prototyping. "Interaction scripting" is not the problem, per se, only a symptom. WPF code when created as a mix of XAML and C# "code-behind" can look like spreadsheet macros and bad DHTML precisely because WPF has "features" that allow you to scatter code everywhere. Silverlight has removed most of these "rapid prototyping" tools like RoutedCommands, WPF DataTemplate, etc.
+
+3) "Producing a DAG" is an artifact of the Container-based layout model, which specializes linear constraint solving. One thing Bykov doesn't mention enough about these Containers is that they generally have a Composite structural pattern with x and y viewport restrictions for constraints. Implicit in this design is the lack of support for 3D focus and perspective; there is no z-axis. I don't think "aiming for a Logic based UI" is the solution, per se. We should be aiming for 3D interfaces with true support for focus and perspective, and get rid of ad-hoc concepts like Freezable objects which have high implementation costs (see the link I provided, with the laundry list of things you must do to implement Freezable correctly, which varies based on the structure of the type). We should probably be thinking in terms of principles of programming languages, and reasoning about resource life cycles using tools like types e.g. linear types, guarded types, tracked types rather than implement this stuff using object networks. I'm not sure what this looks like, practically, though. But, I know, for example, that I dislike the fact it is an allowable operation in WPF to Clone a Freezable object with DependencyProperty expressions in it, even though that will likely mean the cloned object will be placed in a different environment and thus the nominal-based reflective Binding system will either break on path dependency issues or evaluate (dangerously) due to shadowing names. Pervasive unsafe eval should be a no-no. I can probably count on one hand the time that would ever be useful in a GUI application, since in the laziest case you'd be better off abstracting what you want to draw to the screen, rather than clone an object directly on the screen. To eliminate the reflective case, you simply model the structure of screen inputs to screen objects, and have that form a model of what to copy (I've not tried this, but I think it would be clean and work well).
+
+I really don't think WPF is a good design. It is powerful, but none of its power is derived from its warts - none of it. Silverlight for the most part proves this.
+
+By Z-Bo at Fri, 2010-07-02 03:46 | login or register to post comments
+Constraints are more general than hierarchy
+Indeed, constraints fit perfectly into logical programming paradigm. I also see that constraints are more powerful than trees. ("Nested sets" and "nested intervals" demonstrate how this is done in one dimensional case with SQL as logic programming language.) Therefore, hierarchy relation can be derived from spatial relathoship, for example
+
+A.top < B.top & B.bottom < A.bottom &
+A.left < B.left & B.right < A.right
+
+constraints widget A to be ancestor of B. This idea doesn't carry over to DAGs, yet for GUI one can assume that overlapping widgets are always in containment relation, thus narrowing scope of the problem to trees. So, to conclude, constraints solved the identification problem nicely: I don't have to name widgets, and introduce explicit hierarchical relation.
+
+Edit: apparently, one more attribute -- depth -- is needed, otherwise widgets can be in "accidental" hierarchical relation. For example, two maximized windows are not identical, contrary to what two dimensional geometric picture might imply...
+
+By Tegiri Nenashi at Fri, 2010-07-02 20:34 | login or register to post comments
+Naming those Widgets
+It seems quite clear to me that you have named widgets above: A and B. And, presumably, these correspond to names under-the-hood - object references. The question is from where A and B originate: are they named imperatively by something like 'A = new Rectangle' (the new unique name is implicit), or are they named declaratively by something 'visible("A"). shape("A",rectangle).'
+
+By dmbarbour at Fri, 2010-07-02 21:28 | login or register to post comments
+No explicit naming
+Let me clarify the confusion. We have Quaternary predicate
+
+Widget(left,right,top,bottom)
+
+Although it would be natural expand it to include many other physical attributes, the name is not necessary. Consider the following predicate extension, for example:
+
+{(0,0,100,100),(10,50,20,40),(20,30,25,30)}
+
+Spatial relationship among these three anonymous rectangles allow us to establish that the first widget is the parent of the second one, which in turn is that parent of the third one.
+
+By Tegiri Nenashi at Fri, 2010-07-02 21:58 | login or register to post comments
+You've made the confusion clearer.
+Show me how to describe logical constraints, of the sort you were describing earlier, for rectangles in this example.
+
+[edit] It isn't that names are critical for the widgets... though they are important if you need to integrate with a 'native widget' front-end, to reduce flicker of deleting native widgets and creating new ones on every update. But you'll certainly be using names somewhere in the logical progression that leads you to declare the 'Widget(left,right,top,bottom)' in the first place.
+
+Also, I suspect you meant Widget(0,100,0,100) instead of (0,0,100,100).
+
+By dmbarbour at Fri, 2010-07-02 22:01 | login or register to post comments
+Explicit vs. Implicit contraints
+Well, the references that people supplied above my post are somewhat misleading. Their line of thinking is specifying constraints *explicitly*, so that widget dynamics (e.g. handling children widgets correctly when resizing a window) were handles via constraint solvers. Is this why you asked me to exhibit explicit constraint formulas?
+
+Less ambitious approach would specifying initial locations and sizes of all of the widgets (and no other constraints). This description seems to be woefully incomplete. We know what to do if a certain widget is moved (we have to cascade the change to all the descendants), but what do we do when a widget is resized? After all, there is no "springs" and other constraints? Well either zoom, or introducing scrollbars whenever we are forced to fit things into too small of the area seems fine with me.
+
+Re strange geometry: you are correct, Widget(0,0,100,100) meant to have width = right - left = 100 and height = bottom - top = 100. Zeroth width and height would break widgets containment hierarchy.
+
+By Tegiri Nenashi at Fri, 2010-07-02 22:31 | login or register to post comments
+So you're saying that the
+So you're saying that the 'containment' relationship is the derived one, rather than the other way around. And you're imagining that we'll somehow maintain arbitrary derived relationships when we change the source data, as opposed to recomputing the set of derived relationships. For example, since we derived that one rectangle is bounded by another, we'll maintain that relationship if we later 'move' the inner or outer rectangle. (Not that we can really identify 'motion' because, without names, a motion is indistinguishable from deleting one rectangle and creating a new one with different properties.)
+
+But you are already experiencing just how arbitrary and perilous that approach is when you ask questions such as "what about resizing?" then provide ad-hoc seat-of-the-pants answers.
+
+Instead of treating a specification of widgets as the basis for the UI, I would suggest that Widget(0,100,0,100) should itself be derived from some data - i.e. relating directly back to external system data and a user's own perspective of it (explicit view or navigation state). The logic UI expression becomes something like an XSLT transform on XML data, or a transform on a an RDBMS results query. The output of this logical query is a declarative set of logically derived widgets, along with all their properties.
+
+We should never* directly edit these derived predicates because we'd immediately lose the logical relationship to the original data - and thus we'd be leaving the realm of 'logic programming UI'. Instead, widgets can include specifications for how interactions with them are to affect the external system or to affect the user's perspective/view (i.e. clicking a link causes navigation; so does moving a scroll-bar). Changes to either can affect what is displayed to screen. (For smooth, interpolated animations between updates, 'navigate in time' might be part of perspective.)
+
+*: boomerang/lenses might be suitable for updating derived data and having it affect the source, but one would need to greatly restrict expression to make this work in general.
+
+By dmbarbour at Fri, 2010-07-02 22:45 | login or register to post comments
+Temporal and linear LP for GUIs
+I suppose that for GUIs, widgets can be seen as resources in time. There are some logic programming languages based on temporal and/or linear logics that you might find helpful.
+
+Some links:
+Linear Logical Algorithms
+A Temporal Linear Logic Programming Language and its Compiler System
+The Starlog Project
+JStar (a successor to Starlog)
+
+By Artyom Shalkhakov at Fri, 2010-07-02 03:50 | login or register to post comments
+Language support for GUIs
+None of the existing techniques that I know of are satisfactory for GUI programming.
+
+The general pattern of GUIs is that we have a state, and a visual representation of the state. The user can view this state and issue commands. The commands manipulate the state and/or the visual representation.
+
+Take a todo application. The state is a tree of todo-items. The user can add an item, remove an item and mark an item as completed. The user can also save the todo tree to a file to load it later. There are several ways in which we can accomplish this:
+
+We can write procedures to perform an action on the state, and a separate procedure to update the view after the action has taken place. For example we could write `mark_completed_state(item)` to mark item as completed in the state, and a `mark_completed_visual(item)` to update the visual representation to indicate that item has been completed. We also write procedures to build up the visual representation after we've read the state from a file. This is not a satisfactory solution, because we are doing duplicate work by writing procedures to mark an item as completed in the visual representation and procedures to build a visual representation from the state. Also it is not clear how to support undo and how to support multi user live collaboration. This is how MVC works.
+
+Another possible solution is to only write a procedure to update the state, and use the procedure that builds a visual representation from the state to rebuild the visual representation every time the state is mutated. This approach does not require duplicate effort, but this is too slow, and it is hard to maintain user interface state across updates (for example the location of the cursor).
+
+Yet another solution is to remember all the users' actions, and only write the procedures mark_completed_state and mark_completed_visual and not implement a procedure to build a visual representation from a state. When we save the state to a file we instead save the sequence of actions the user performed. When we load the file we replay this sequence to build the visual representation. This is not satisfactory because this sequence of actions requires a lot of effort to maintain across program updates. It also still requires roughly duplicated effort: the code to update the state and the code to update the visual representation will look roughly similar. An advantage of this approach is that it is easy to support undo, and relatively easy to make the application support live multi user collaboration.
+
+Toughts? Solutions to this problem?
+
+Can we get a solution that gives us undo and multi users collaboration for free (or nearly for free), as well as allowing us to easily update the application?
+
+By Jules Jacobs at Fri, 2010-07-02 15:12 | login or register to post comments
+Rebuild from State
+Another possible solution is to only write a procedure to update the state, and use the procedure that builds a visual representation from the state to rebuild the visual representation every time the state is mutated. This approach does not require duplicate effort, but this is too slow, and it is hard to maintain user interface state across updates (for example the location of the cursor).
+
+I'd disagree with this being 'too slow'. This technique is often utilized to excellent effect for real-time systems. To additionally support smooth animations and minimize need for updates, one can specify that the visual is a function of time (i.e. thus allowing interpolated motions).
+
+With push-based invalidations and pull-based updates, responsiveness is excellent. If your concern is efficiency - i.e. akin to 'redraw only the dirty rectangles' - then a reactive or dataflow language could also feasibly allow us to annotate points for caching and to avoid recomputing when there is no change. However, that isn't often used in practice because space (and cache-invalidation) is often more expensive than CPU, so there is a lot of delicate balancing.
+
+It is unclear to me what you mean by: "hard to maintain user interface state across updates". After all, we're essentially rebuilding the user interface across updates. But if you're assuming a Windows/GTK based environment, I suppose you'll have some problems... i.e. because the identity of a window might correspond to nothing in the model, so you won't know clearly know when to create new windows. (If you named your widgets from inside the model, OTOH, this wouldn't be a problem.)
+
+Can we get a solution that gives us undo and multi users collaboration for free (or nearly for free), as well as allowing us to easily update the application?
+
+No. We cannot combine both 'undo' and 'multi-user collaboration'. The two features become incompatible the moment multiple users start interacting with a common object. I.e. if two users modify a block of text - Alice modifying Bob's text and Bob modifying Alice's text - then what does 'undo' mean? We could apply a 'theory of patches' similar to Darcs and allow 'undo' up to the point of overlap within the block of text. We could present Alice with a three-tailed-unmerge utility that allows Alice to selectively preserve some amendments by Bob. But these solutions would be specific to the problem of 'editing a block of text'. We'd need a new such solution for every collaborative UI control.
+
+Undo and other alternatives to confirmation dialogs (such as well-defined 'cancellation') are useful and desirable when they can be achieved. But it is important to keep in mind that most useful UIs are interfaces to something outside themselves - such as databases, teleconference, e-mail, multi-media control, launching nukes, etc. While support for 'undo' could be simplified by our UI frameworks, I do not believe we should attempt to treat it as a first-class property of UIs; rather, 'undo' really is something that must be adjusted on a per-domain basis.
+
+Toughts? Solutions to this problem?
+
+You might review some physics-based solutions. Treating user interaction as events, forces, behaviors is different than treating user actions as 'commands' or 'direct manipulation'; the reaction to these forces and events can be non-local. The code describing these reactions need not be centralized to, for example, an 'onButton' handler.
+
+Additionally, you can combine your solutions #2 and #3. Functional reactive programming, for example, logically remembers all input events, but is generally organized to allow GC of earlier inputs.
+
+By dmbarbour at Fri, 2010-07-02 16:33 | login or register to post comments
+I'd disagree with this being
+I'd disagree with this being 'too slow'. This technique is often utilized to excellent effect for real-time systems. To additionally support smooth animations and minimize need for updates, one can specify that the visual is a function of time (i.e. thus allowing interpolated motions).
+With push-based invalidations and pull-based updates, responsiveness is excellent. If your concern is efficiency - i.e. akin to 'redraw only the dirty rectangles' - then a reactive or dataflow language could also feasibly allow us to annotate points for caching and to avoid recomputing when there is no change. However, that isn't often used in practice because space (and cache-invalidation) is often more expensive than CPU, so there is a lot of delicate balancing.
+
+Yes, I'm concerned exactly about dirty rectangles and only redrawing when necessary. I have written applications in this style that just redraw everything every frame and they use far too much resources. This technique is used in games. If you are running a single such application (as is the case with games) then it is acceptable. With multiple applications you are going to run out of resources quickly. You don't want a todolist application using more than a few percent CPU and memory bandwidth.
+
+Perhaps you could roll your own widget set and implement caching in that implementation. This is not what I want. I want to use the native widgets (and I'm not alone ;).
+
+It is unclear to me what you mean by: "hard to maintain user interface state across updates". After all, we're essentially rebuilding the user interface across updates. But if you're assuming a Windows/GTK based environment, I suppose you'll have some problems... i.e. because the identity of a window
+
+What I mean is this. The underlying state of the todolist that would be saved in a file is a tree of (string task, boolean completed). We can easily write a procedure to display this structure. But we want to be able to edit it too, for example by having a cursor into the tree similar to what you get in a word processor. The position of the cursor is not included in the state/tree data. If you use the procedure to convert the tree to a visual representation you are going to lose the cursor position. So we need to store additional state that is only maintained for UI purposes, thus you kinda lose the beauty of only having to worry about the underlying tree data.
+
+Another example of state that exist solely for the GUI and not for the underlying data is scrollbar position. Another example is if you have a table of data with headers above each column (e.g. a table of people with first name, last name and age). The visualization allows you to click on the column header to sort the data by that column. This is GUI state too.
+
+No. We cannot combine both 'undo' and 'multi-user collaboration'. The two features become incompatible the moment multiple users start interacting with a common object. I.e. if two users modify a block of text - Alice modifying Bob's text and Bob modifying Alice's text - then what does 'undo' mean? We could apply a 'theory of patches' similar to Darcs and allow 'undo' up to the point of overlap within the block of text. We could present Alice with a three-tailed-unmerge utility that allows Alice to selectively preserve some amendments by Bob. But these solutions would be specific to the problem of 'editing a block of text'. We'd need a new such solution for every collaborative UI control.
+
+Yes, you need domain specific knowledge to provide undo and multi-user collaboration. What I'm asking is a nice way to be able to do that in the framework. MVC does not provide this. You need to explicitly save previous versions of the document, or record actions and write procedures to undo those actions. Same with multi user collaboration: you are completely on your own. I think you can still write reasonably general solutions that can be applied in many situations, only requiring explicit code for merging changes if the general solution doesn't work. For example you could write code for handling multi user editing of a record (easy) and of a list (harder, but doable), text being a list of characters.
+
+If you model actions as functions from state -> state, then the library would provide some way to apply them in a deterministic order at both users' machines. For a collaborative text editor the actions could be:
+
+
+move(n, (cursor1, cursor2, text)) = (cursor1 + n, cursor2, text)
+insert(s, (cursor1, cursor2, text)) = (cursor1', cursor2', insert(s, cursor1, text))
+  where cursor1' = cursor1 + length(s)
+        cursor2' = cursor2 + if cursor1 < cursor2 then length(s) else 0
+
+Move moves the cursor of user 1 by n steps. Insert inserts a string s at the cursor of user 1. This is much simpler than writing a collaborative text editor with a library that does not guarantee that actions will be applied in the same order at both locations.
+
+You might review some physics-based solutions. Treating user interaction as events, forces, behaviors is different than treating user actions as 'commands' or 'direct manipulation'; the reaction to these forces and events can be non-local. The code describing these reactions need not be centralized to, for example, an 'onButton' handler.
+Additionally, you can combine your solutions #2 and #3. Functional reactive programming, for example, logically remembers all input events, but is generally organized to allow GC of earlier inputs.
+
+Physics and FRP both seem to be focused on animation/layout (especially physics). I do not have a clear picture how you could for example implement the todo tree application, let alone such an application that allows saving, undo and multi user collaboration.
+
+By Jules Jacobs at Fri, 2010-07-02 18:56 | login or register to post comments
+Comments
+1. Most games actively cull offscreen entities before doing expensive rendering work. Maybe you were just talking about the HUD/UI in games.
+
+2. You don't have to roll your own widgets to automate caching - you can do caching to determine when to update the native widgets. There is still a bit of an "impedance mismatch" in combining native widgets with a better factored design, but I think it's mostly going the other way - getting input out of the native widgets.
+
+3. Your account of multiuser editing is simplistic if it's meant to work over the internet. The latency is too high to combine input streams before acting on them. You need to either treat the input streams the way a distributed version control system would, as David alluded to earlier, or at least do client side prediction for things like text entry and movement.
+
+By Matt M at Fri, 2010-07-02 19:47 | login or register to post comments
+1. Most games actively cull
+1. Most games actively cull offscreen entities before doing expensive rendering work. Maybe you were just talking about the HUD/UI in games.
+
+I was talking about the rendering in the game itself. The rendering is essentially done by a procedure that takes world state and renders the view based on that. This is different than desktop GUI applications: they incrementally update only parts of the screen instead of completely re-rendering on every frame. If you type a letter in a text box the rest of the application is not redrawn. Culling is just part of the rendering process. It doesn't make rendering incremental (and it's impossible to render incrementally for games because it's likely that every pixel on the view of the game world changes).
+2. You don't have to roll your own widgets to automate caching - you can do caching to determine when to update the native widgets. There is still a bit of an "impedance mismatch" in combining native widgets with a better factored design, but I think it's mostly going the other way - getting input out of the native widgets.
+
+Can you elaborate on this? Can you give an example on how caching might be used to trigger updates in native widgets? And why it's a problem to get input out of the widgets?
+
+3. Your account of multiuser editing is simplistic if it's meant to work over the internet. The latency is too high to combine input streams before acting on them. You need to either treat the input streams the way a distributed version control system would, as David alluded to earlier, or at least do client side prediction for things like text entry and movement.
+
+You do not need to wait until the other side acknowledges an action A until you apply it locally. You can apply it immediately. If an action B from the remote user comes in that should be applied before A then you first apply B to the state as it was before A and then apply A. This automatically ensures that the states on the two machines do not diverge.
+
+By Jules Jacobs at Fri, 2010-07-02 20:54 | login or register to post comments
+1. I see what you meant -
+1. I see what you meant - the last step of dumping a bunch of draw calls to the graphics hardware is performed every frame. I agree and was just pointing out that there's often much incremental work done in figuring out what to dump.
+
+2. What I meant by caching to trigger updates is that e.g. if you have a list box whose contents depend on the state of a list, you can define some kind of a functional mapping and that uses caching to update the native listbox widget only when the list changes.
+
+If widgets were just dumb glyphs, this would be pretty simple, but they also potentially house alot of state and logic. So if you want to have the ability to capture UI state as a value, it looks like it would be messy. Maybe it's manageable, though, I haven't tried.
+
+3. Ok, I misunderstood what you were proposing. Preferably, though, the GUI wouldn't hard code such architecture decisions.
+
+By Matt M at Fri, 2010-07-02 21:33 | login or register to post comments
+roll your own widget set and
+roll your own widget set and implement caching in that implementation. This is not what I want. I want to use the native widgets (and I'm not alone ;).
+
+That isn't a problem, really. You don't need to roll your own widget set; to leverage caching and isolation of changes, it is enough to distinguish which 'native' widgets need updating. (I've plenty of rants I could point you to regarding how native widgets and idioms are holding us back, but I do recognize the demand to 'fit in'.)
+
+If you model actions as functions from state -> state, then the library would provide some way to apply them in a deterministic order at both users' machines.
+
+Sounds like you want a tea party as seen in Croquet or as modified for its more modern incarnation, OpenCobolt.
+
+That isn't the model of collaborative UI that I favor, because I'm concerned about disruption tolerance, delay tolerance, partitioning tolerance, graceful degradation, resilience, and security as we move to larger numbers of users. But Uni-Tea in its many incarnations is enough for many scenarios.
+
+Pysics and FRP both seem to be focused on animation/layout (especially physics).
+
+Well, animation and layout are certainly part of it. I was not assuming a demand for the 'native' widget sets. But physics and FRP both handle user input. Collaboration is quite natural in a physics-based environment, since multiple users are just applying forces in an environment (a mouse or hand is a sort of avatar...). FRP is much stickier for multi-user collaboration, though I'm sure it is achievable using something like the tea-party approach. Some of my concerns with FRP in a concurrent open environment led me to develop RDP.
+
+By dmbarbour at Fri, 2010-07-02 21:22 | login or register to post comments
+A lot of stuff here... I do
+A lot of stuff here...
+
+I do not have a clear picture how you could for example implement the todo tree application, let alone such an application that allows saving, undo and multi user collaboration.
+
+See the Flapjax paper. We demonstrate how to encode similar ideas and then abstract them away so you can reuse them.
+
+Flapjax, by trying to be a simple clientside JavaScript library (an experiment in the design space of FRP embeddings), was syntactically clunky in some ways. Lunascript takes a more purist approach at the front (which we abandoned for reasons beyond this post) which brings back a cleaner embedding a la FrTime. Furthermore, Lunascript is made for collaborative applications, putting in significant effort on cleaning up server interactions. FRP seems like a great match here.
+
+Undo is an interesting feature. E.g., Scheme server had to introduce fairly exotic continuations to properly represent multiple tabs and back buttons (Jay McCarthy's work) and I still haven't seen good support for heap structures (e.g., data structure checkpointing). It's hard to discuss this without a clear understanding of what you mean by undo. FWIW, incremental models such as those made possible by FRP can support memoization, directly solving one form of undo, but, again, it's unclear what's really desired.
+
+Another possible solution is to only write a procedure to update the state, and use the procedure that builds a visual representation from the state to rebuild the visual representation every time the state is mutated. This approach does not require duplicate effort, but this is too slow, and it is hard to maintain user interface state across updates (for example the location of the cursor).
+...
+Yes, I'm concerned exactly about dirty rectangles and only redrawing when necessary.
+
+There are a lot of GUI optimizations worth doing that aren't easy to pick out from a general FRP language, so I agree with Jules that the pure functional approach isn't good: you want incrementalization like redraw regions.
+
+However, in my work with FRP and crazy efficient layout engines, I've seen a few sweet spots worth mentioning. First, a consistent lesson from robust FRP implementations is that they're *very* stateful. As cool as functional data structures, they're not enough, so (ignoring GPU work) good FRP engines are stateful underneath. Second.. good FRP engines aren't enough. The 80s learned this with attribute grammars and we relearned it with FrTIme. Once you need something like data structures, you'll do something like FrTime lifting MrEd or Flapjax lifting the DOM. Acar essentially came to the same conclusion with his incremental abstract data types paper recently: automatic incrementalizers like FRP ones will resort to custom ones for stuff like GUIs (or, in his case, graph algorithms). Third and finally.. this doesn't mean FRP is a bad interface: it just means we still can't use fully general automatic incrementalizers in the backend.
+
+Anyways, there both expressiveness and performance challenges for FRP. My thesis is exploring just how efficient a UI engine can be and there's no reason something like Flapjax can't be its interface -- I'm not tackling this, but I have more reservations about FRP being an understandable interface than an efficient one (assuming you know how to write efficient compilers and UI frameworks). FWIW, I think layout languages / frameworks are important and complex enough (e.g., web browsers) that they should be written with an efficiently compilable DSL to beginwith, separating UI framework logic from UI optimizations, but that has little to do with the interface exposed to normal developers who use the UI framework.
+
+By lmeyerov at Sat, 2010-07-03 04:48 | login or register to post comments
+The Flapjax paper contains
+The Flapjax paper contains many examples but no example that shows to do do an app for editing tree (or even list) structures. They way I'd do a todoLIST with Flapjax is not really different from how I'd do it with a traditional GUI toolkit: keep a mutable list of strings and handle events for inserting, deleting, etc. This doesn't really solve the problem of keeping the underlying state and the visualization in sync and there is not natural way to handle undo either / multiple users either as far as I can see. The other way you could do it is by keeping a behavior of immutable lists that reacts to mouse/keyboard commands but then you have the problem of incremental rendering and keeping UI state (e.g. cursor position) again.
+
+Perhaps something like lenses / bidirectional programming could be integrated with FRP?
+
+By Jules Jacobs at Sat, 2010-07-03 13:47 | login or register to post comments
+doesn't really solve the
+doesn't really solve the problem of keeping the underlying state and the visualization in sync
+
+I'm still not understanding which problem isn't really being solved. It is my experience that precisely hammering out the problem brings me much closer to a solution (or to a decision to redesign for an easier set of problems). Could you describe the problem more concretely and precisely?
+
+By dmbarbour at Sat, 2010-07-03 17:17 | login or register to post comments
+The one we've used is pretty
+The one we've used is pretty close to what Acar recently presented in "Traceable data types for self-adjusting computation": most of it is general FRP, but if you have a fancy imperative or incremental data structure (e.g., an array or the DOM), provide an interface to it. Lists/Arrays are somewhere inbetween: we had one where it took event streams of JavaScript add/remove/etc. commands. It's still a declarative interface and we get the benefits of an imperative implementation -- we just gsve up on automatically generating it. Interestingly, the Max/MSP community regularly uses this model for their patches (but, while their programs realtime, they are not incremental).
+
+I don't think our array was the ideal incremental implementation (imagine a map or fold on the array -- there's no way to replace Array types with ForeignArray types, so Acar is on the wrong side of the expression problem in his paper), but I think a tuneable solution wouldn't be too bad if you cared about it (I started adding that but realized it was a low priority).
+
+By lmeyerov at Sat, 2010-07-03 22:23 | login or register to post comments
+This doesn't really solve
+This doesn't really solve the problem of keeping the underlying state and the visualization in sync and there is not natural way to handle undo either / multiple users either as far as I can see.
+
+What are you trying to get for free?
+
+There is no such thing as 'natural (free) undo' in an OO system. Objects don't support serializing behaviors for free, and supporting serializing behaviors needs to be handled manually to ensure invariants do not break. It is best to model snapshots directly using a Snapshot object that saves the aspects of the object you wish to save. The system can then navigate to any point in the space of the Snapshot object to retrieve a version of the Snapshotted Object, and a factory would know how to reconstruct that object. This is actually very modular, even though you don't get it 'for free'.
+
+I also think there is a separate thing here you may not be aware of. Incrementalization is a function of quiesence and independence of the computation. Also, the visualization may not need to be "in sync" with the underlying state. Here is a sample problem: How would you load a 10 GB file into memory if you only have 4GB of main memory and 4 GB of swap? How would you respond to user's primitive actions on your model of the VeryLargeFileViewer object? What should the user's primitive actions even be? Would plug-ins use the same tools? A basic start would be having at a minimum three concepts: model, buffer, & viewport. Which is really: model, transformation, and clipping.
+
+By Z-Bo at Mon, 2010-07-26 21:49 | login or register to post comments
+Natural Undo
+Undo can be supported in a 'natural' manner in a confined OO model, i.e. by using transactions or worlds. Backtracking computations are feasible. But I don't see how this can be combined effectively with distributed multi-user collaboration, at least not in general.
+
+But it seems to me that Jules isn't looking for a 'general' solution that will be valid across an entire computation model. Rather, he wants for modern GUI libraries, or perhaps an adapter library, to ship with effective 'default' solutions for multi-user collaboration, 'undo' management, and boomerang style round-tripping. These 'default' solutions would need to include only the more popular widgets that might normally come with a good GUI library: text and editable text or WYSIWYG documents, check boxes, radio buttons, sliders and knobs, ordered and unordered lists, maps, calendars, grids, graphs, canvases. For flexible views - i.e. same data in a slider here vs. a text box over there - one needs for the GUI to help track where data comes from, to process the updates, and to push back any user-incurred changes. For widgets created by developers, and to override the defaults, developers should be able to hook in their own solutions. For some unimaginable reason, Jules doesn't want to reinvent these features once per shared form or collaborative application.
+
+My interest - and perhaps your own - is more in identifying the sort of computation model that would make expression of such a GUI library straightforward, safe, efficient, and verifiable.
+
+By dmbarbour at Mon, 2010-07-26 23:18 | login or register to post comments
+"flexible views"?
+For flexible views - i.e. same data in a slider here vs. a text box over there - one needs for the GUI to help track where data comes from, to process the updates, and to push back any user-incurred changes.
+
+I disagree. One thing I believe in is Model-View separation, as defined by Parr (my notes in bracketed italics):
+
+the view cannot modify the model either by directly altering model data objects or by invoking methods on the model that cause side-effects. [Failure here means the view is symptomatic of the Liar View bug pattern. Further, invoking a command (side-effecting operation) on a model may not guarantee synchronization with other views. Even if the view knows how to synchronize itself with the model (no modularity, hard to test), it shouldn't know about other views.]
+the view cannot perform computations upon dependent data values. [Failure here means the view is dependent on the meaning of the data it is displaying; changes to the model may break the view.]
+the view cannot compare dependent data values, but can test the properties of data such a presence/absence or length of multi-valued data value. [Failure here means the instantiation of the concrete view is not hidden via an abstract factory.]
+the view cannot make data type assumptions. [...] This rule forbids array indexing. [...] further cannot call methods with arguments because [...] there is an inferred argument type. [Failure here means the objects are not naked objects. Note: Technically, Pawson's naked objects aren't really naked, as you are aware of.]
+data from the model must not contain display or layout information. [Failure here means the object has exposed its representation and has hardwired the number of scenarios for which that representation can be displayed.]
+For undo, you need some sort of "event sourcing" so the object can re-materialize its prior states. This is not "natural" in my humble opinion. You don't get it for free. The GUI should not be responsible for this stuff, either. Presumably, the reason you are drawn to this idea is for performance? If so, be careful...
+
+Recently, Wadler and his Ph.D. students came up with an algebraic alternative to Parr's Model-View separation framework, called Formlets. Rather than the extreme of untyped objects communicating only via message passing, Wadler advocates applicative functors.
+
+The major problem with Formlets is partially social; based on code I've read on the web, many blogging Haskell web programmers are so awful at abstraction that they have no clue what they are writing when they use them (I actually think this observation about abstraction applies to all web programmers, not just people who use Haskell). The Haskell wiki has some especially bizarre code for validating a Date entity that abuses `elem`; I've seen such garbage Date validation in many places before, such as Joe Armstrong's ridiculous Why OO Sucks rant. They'd be better off re-reading your rant about making Naked Objects more naked (finer-grained security and composability) and trying to pass Parr's tests.
+
+I also think you need to take into consideration federation. Federation implies the need for handling undo, and also having disruption tolerance in place for handling weak and episodic connectivity.
+
+I think the door is not closed yet on good view design. For example, what is the best way to specify an unparser for an extensible language? That is a good challenge problem, in addition to my (somewhat ridiculous) question about loading a 10GB source code file.
+
+By Z-Bo at Wed, 2010-07-28 23:16 | login or register to post comments
+Word play
+I disagree with Parr's definitions. Consider one relevant separation: separate development and maintenance between a 'command and control (C2) model' and a 'display model'. This is not implied by Definitions 5,6,7 from the linked paper. Parr's rules 2 and 3 would insist that the C2 model's exported vocabulary be a function of the display model's requirements - which strikes me as abhorrent.
+
+I make no strong distinctions between 'models' and 'views' and 'controllers' in my mind. A 'view' is a display model - a model whose language/interface is understood by a browser or shell or other generic UI system.
+
+I consider attempting to separate MVC properties to often contradict 'good style'. One goal in C2 systems is support for responsibility, which requires that authority be always coupled with the authentic information necessary to wield it wisely. Another goal is secure interaction design, which (among other things) requires an operator's authorities must be reflected clearly and precisely in the view. For efficiency, demand-driven systems are powerful, but to observe demand-driven systems is to affect them (violating rule 1).
+
+If we want mashups treating display models as another sort of model (for transclusion, transformation, reflection) we'll likely end up violating rule 5.
+
+Parr's def 7 adds an unnecessary constraint that 'strict separate' views also be 'generic' views (independent of data types of the referenced model). This strikes me as extraneous. Generic programming should be favored where feasible, of course, but is not critical. More importantly, the data types of the display model must be understood by the display system.
+
+The notion of separating a layout model from a decision model, in order to allow pluggable layouts for the same information, is reasonable and justifiable. I'm not objecting to Parr's motives, and his rules 2 and 3 might apply well if we introduce another intermediate 'decision model'. But, rather than 'MVC', what we really have are models all-the-way-down. Justifications apply for separating one model for another, or for introducing another layer of indirection, or for limiting side-effects. Every model both views and imposes on other models.
+
+By dmbarbour at Thu, 2010-07-29 02:45 | login or register to post comments
+Solve the problem by avoiding it
+If we want mashups treating display models as another sort of model (for transclusion, transformation, reflection) we'll likely end up violating rule 5.
+
+I have to think about your other arguments, but this one is clearly methodological. Reflection, as I infer you to be using it, can be eliminated by a protocol. Mashups, in general, are unstable and not based on documented abstractions with software lifecycles. Nothing is more fungible than a view; trying to scrape view code after the view has been instantiated is trying to reverse engineer how that view was created in the first place. In this way, you might say "model's exported vocabulary be a function of the [mashed up] view's requirements - which strikes me as abhorrent," to use your own words.
+
+It makes more sense to expose the mashup directly, with semantic information. This is what part of the vision behind Berners-Lee's Semantic Web. You can always do stuff like Leo Meyerovich was doing for search, but that's highly dependent on a particular instance of the "screen" at "screen scraping time".
+
+I'm still trying to make sense of the rest of your feedback. I think that you are arguing Parr's definitions are "wrong", but not arguing his methodology is wrong. His methodology for UI construction traces back, IMHO, to Bill Newman at XEROX PARC. Alan Kay covers Newman's attempt to specify a UI in terms of a grammatical foundation in his Early History of Smalltalk paper, citing the "monstrous bug" he saw in Newman's attempt [1]. IMHO, if you want to critique Parr, I wouldn't critique the methodology, since it is superior to all other attempts. Instead, I would critique his use of regular languages.
+
+[1] (emphasis mine)
+
+One of the interested features of NLS was that its user interface was a parametric and could be supplied by the end user in the form of a "grammar of interaction given in their compiler-compiler TreeMeta. This was similar to William Newman's early "Reaction Handler" [Newman 66] work in specifying interfaces by having the end-user or developer construct through tablet and stylus an iconic regular expression grammar with action procedures at the states (NLS allowed embeddings via its context free rules). This was attractive in many ways, particularly William's scheme, but to me there was a monstrous bug in this approach. Namely, these grammars forced the user to be in a system state which required getting out of before any new kind of interaction could be done. In hierarchical menus or "screens" one would have to backtrack to a master state in order to go somewhere else. What seemed to be required were states in which there was a transition arrow to every other state--not a fruitful concept in formal grammar theory. In other words, a much "flatter" interface seemed called for--but could such a thing be made interesting and rich enough to be useful?
+
+By Z-Bo at Thu, 2010-07-29 14:24 | login or register to post comments
+Mashups
+Mashups, in general, are unstable and not based on documented abstractions with software lifecycles. Trying to scrape view code after the view has been instantiated is trying to reverse engineer how that view was created in the first place. It makes more sense to expose the mashup directly, with semantic information.
+
+I agree that it is generally more ideal to compose the underlying C2 or 'semantic' models and construct a new display model atop the resulting semantic mashup. However, someone with access to a display model cannot be guaranteed to also possess stable or direct access to the semantic models underlying its construction.
+
+I believe it wise to develop display model languages in a manner more suitable for accessibility (e.g. multi-lingual UIs, blind and deaf access, etc.) and stable mashups (e.g. extracting a particular button or text area and all related scripts, transforming, changing scripts). Features designed for accessibility tend to complement those designed for mashups. We can do much better than 'screen scraping', and even better than HTML, CSS, and GreaseMonkey scripts.
+
+Arguing about mashups 'in general' won't reveal anything that isn't true of semantic models 'in general'. (In general, semantic models are unstable and not based on document abstractions with software lifecycles. ;-) More profitable is discussing mashups with respect to a particular class of models.
+
+you are arguing Parr's definitions are "wrong", but not arguing his methodology is wrong. His methodology for UI construction traces back, IMHO, to Alan Newman at XEROX PARC.
+
+I made no argument one way or the other about Parr's motivations or methodology. It says many negative things about his definitions (and derived conclusions) that they are so detached from the rest of that document.
+
+By dmbarbour at Thu, 2010-07-29 15:57 | login or register to post comments
+For undo, you need some sort
+For undo, you need some sort of "event sourcing" so the object can re-materialize its prior states. This is not "natural" in my humble opinion. You don't get it for free.
+
+You're assuming that 'undo' must be a function of every individual object. Think instead of 'undo' as a function of the environment, similar to orthogonal persistence. To undo a message is to reverse to an older snapshot and redo all messages but the eliminated one. Of course, this 'natural' technique isn't applicable to collaborative environments, which was my earlier complaint to Jules.
+
+I'm not sure what you're saying about getting a feature for 'free'. GUIs aren't free, either. GUI libs could come with better APIs to support such features as 'undo' and collaborative apps.
+
+The GUI should not be responsible for this stuff, either. Presumably, the reason you are drawn to this idea is for performance?
+
+This was more about not wishing to reinvent common features such as 'undo' once per application. And the GUI library need not be 'responsible' for this feature, but it would be a serious problem if you couldn't add 'undo' without essentially rewriting the GUI libraries from scratch.
+
+what is the best way to specify an unparser for an extensible language?
+
+I'd say the answer is mu. [There is no widely accepted definition for 'better'. Is the goal performance? stylistic consistency? obfuscation? ASCII art?]
+
+my (somewhat ridiculous) question about loading a 10GB source code file
+
+I don't believe that's the class of scalability we need, though lazy evaluation, ropes, reactive updates, intermediate caching, and orthogonal persistence would probably go a long way.
+
+Here's a better question: how might I provide a zoomable interface to the Internet, where every link comes with a zoomable preview?
+
+By dmbarbour at Thu, 2010-07-29 03:12 | login or register to post comments
+Solve the problem by avoiding it
+Here's a better question: how might I provide a zoomable interface to the Internet, where every link comes with a zoomable preview?
+
+First, I love the question. But second... I'd rather figure out a way to side step that problem and focus on HCI.
+
+Figure out a way to avoid a zoomable preview. For example, Google Images Search has recently changed its UI such that users no longer have to click-to-continue browsing to the next page of image search results. They've taken the same model -- search results -- and made it so that the pagination is loaded in situ. As someone who suffers from RSI problems, I personally love the new interface.
+
+By Z-Bo at Fri, 2010-07-30 17:24 | login or register to post comments
+Solve the Exercise by Letting the Dog Eat It
+Sometimes a problem is presented because it needs a solution, in which case finding a way to not solve it is entirely appropriate. Sometimes a problem is presented because it is meant to make you think about the underlying issues, in which case the solution to the problem is irrelevant to its purpose. Sometimes we call those 'exercises', like running around in a big circle: it doesn't get you anywhere, but it does build you personally.
+
+The question of zoomable Internet was intended as an exercise. I'm not actually interested in putting small previews on an HTML+DOM+JS+Css web. But I do want to answer questions about what it would take to make an Internet-scale continuously navigable and zoomable UI, without centralized authority, where it really is 'zoomable' on "every" link (including the links inside the previews).
+
+Certainly your answer of finding a way to load only what is needed and visible of an answer-set is part of that solution. But the question remains: how do we achieve such a thing in general? Limiting it to previews of static images is much easier than when we start working with previews of active, personalized, or AJAX-filled pages.
+
+By dmbarbour at Fri, 2010-07-30 17:31 | login or register to post comments
+Those laws seem designed for
+Those laws seem designed for the limits of current UI abstractions. Consider something like Bling or Formlets where the UI is defined fully in code. This approach would seem to violate items 2-4, yet in a way that the compiler can check whether the dependencies and computations are sound, in which case the violations seems perfectly ok to me.
+
+Perhaps I'm not properly understanding the purpose of these constraints.
+
+By naasking at Thu, 2010-07-29 04:22 | login or register to post comments
+Parr developed a set of
+Parr developed a definition for "strict separation" of 'model' and 'view'. The constraints listed above derive from this definition: if you want what Parr calls "strict separation" of model and view, then you will end up following those five rules.
+
+I think it moot. Parr does not justify that a system classified under his definition 7 will achieve the ends motivated in section 3, nor does he justify that a less restrictive definition would not suffice. His definition is, thus, arbitrary; this 'strict separation' property has not been justified as a good thing.
+
+By dmbarbour at Thu, 2010-07-29 05:11 | login or register to post comments
+When developing web
+When developing web applications I often have to look at controller code to understand the view code and vice versa.
+
+Controller code looks like this:
+
+x = load an object from the database
+optionally do something with x
+y, z = load objects from the database
+And view code looks like this:
+
+...
+display an error message depending on whether the operation on x succeeded
+...
+display y and z
+...
+What happens is that when you're looking at the view only you don't know which objects you are dealing with and which variables are available and what they contain. When you're looking at the controller you don't know how the objects will be displayed. The result is that you are constantly switching around to get a full picture of the situation.
+
+In my opinion it is natural to combine the two into one. This could be done at the language level (if your view language is the same as the controller language, for example a HTML DSL in Lisp) or at the IDE level, by always displaying the controller on the top half of the screen and the view on the bottom half.
+
+By Jules Jacobs at Thu, 2010-07-29 09:42 | login or register to post comments
+Formlets has good ideas
+...most of which are compatible with pluggable types. Pluggable types are also compatible with blame. Wadler has gone on record on his blog stating that he would like to see a type system that supports Bracha's Newspeak.
+
+Consider the XmlWriter... it doesn't need to be an XmlWriter... if we want to nest templates or in Wadler's case Formlets, then what we really care about is that the basic laws of composition are obeyed for the syntax. XHTML has some pretty strict guidelines, and no templating engines statically check those guidelines. Some quasi-templating engines like XAML are broken by design. Formlets treats the encoding the way it should be treated: determine whether the XHTML is valid apart from determining how to parameterize and compose the form. Making these two things orthogonal is the biggest mistake with StringTemplate. Put another way, if so many websites dynamically generate pages, then why does HTML5 specification lead Ian Hickson report that 93% of all websites fail the W3C validation test? (Part of the reason definitely has to do with the fact templates don't statically check that combinations are valid. ASP.NET is particularly awful at this with Master Pages, as Master Pages as implemented severely limit compositionality -- it is the opposite of the "Display Document" model David Barbour refers to.) [edit: and ASP.NET "Web Forms" are only allowed one per page, and that means if a Master Page contains a Web Form then no pages including that Master Page can modularly use that Web Form idea.] How should we validate? We could perhaps reuse Wadler's work on defining XML schemas... this would mean it doesn't matter what XmlWriter refinement type we plug-in, the syntax will always be statically validated. [1]
+
+There are a lot of good papers on web programming these days, and if you'd like, I can message you a list.
+
+[1] Assuming complete recompilation of the system or "Tagging" carried forward on templates to prevent in situ update errors from propagating from one website view to another view silently.
+
+By Z-Bo at Thu, 2010-07-29 22:07 | login or register to post comments
+Safe Templating Engines
+XHTML has some pretty strict guidelines, and no templating engines statically check those guidelines.
+
+What about Ur/Web?
+
+By dmbarbour at Fri, 2010-07-30 00:57 | login or register to post comments
+RE: Safe Templating Engines
+There actually are more competitors than StringTemplate and Formlets.
+
+MAWL: first-class sessions and document templates
+<bigwig>: descendent of MAWL; uses a special DSL called PowerForms for data validation
+JWIG: descendant of <bigwig>; uses XACT for statically verifying XHTML generation (and only XHTML is supported)
+Abstract Parsing: static analysis of dynamically generated string output using LR-parsing technology
+The first three are pretty monolithic even though they appear superficially to address separation of concerns, they fail to properly take into account integration of concerns at the same time. Of the four, I like the abstract parsing idea the most, since it is the most general and can be used just about anywhere, especially in a pluggable types system.
+
+What about Ur/Web?
+
+First, Ur clearly violates Parr's 5 Rules, since Ur/Web heavily leverages dependent typing to guarantee web apps "don't go wrong".
+
+Yet, Ur/Web has a great set of criteria, but I don't think Ur/Web actually achieves what it sets out to do. For example, taken from the LtU thread posted by Adam Chlipala: ANN: Ur/Web: Statically-typed metaprogramming for the web:
+
+The signature of the standard library is such that well-typed Ur/Web programs "don't go wrong" in a very broad sense. Not only do they not crash during particular page generations, but they also may not:
+
+Suffer from any kinds of code-injection attacks
+Return invalid HTML
+Contain dead intra-application links
+Have mismatches between HTML forms and the fields expected by their handlers
+Attempt invalid SQL queries
+Use improper marshaling or unmarshaling in communication with SQL databases
+I don't see how Adam can guarantee all those things. For example, how can a programming language X determine whether or not another language Y will accept generative input Iy? It can't (and so what does it do if it can't? Does it just assume it always will work? This part of the specification appears undefined). All I need to do is break the schema and the queries will break [1]. It doesn't matter if you "compile database code" like MLState OPA does, because (a) most databases don't have full referential integrity, mostly due to the complexity of the SQL-92 standard, both its depth (over 50 levels deep) and total number of productions. (b) compiling a query does not guarantee the query won't fail, as I've posted examples of this on my blog (c) somebody can always drop the stored procedure, anyway (d) in most real-world systems you need a plan for en vivo studying of the system and in situ updates; this is why a requested theme for OOPSLA this year was ideas (tools, languages, patterns, methodologies, etc.) for the software lifecycle process.
+
+What happens to an Ur/Web web site when that happens? If you can't successfully do #5, but wrongly assume you can, then you can't statically prove #3 either. And if you can't do #3, then how can you handle partial failures of streaming updates or any request that does an in situ page update like all those AJAX/Comet scenarios do? What about the Ur/Web admin interface? What if I want to extend the interface so that I can manage my database system from it, e.g. using Ur/Web to create a phpMyAdmin clone (but "better" for some definition of "better")? So the admin-interface can break the applications it is administering when the user is using it, if I understand things correctly. Otherwise the admin-interface either disallows any plug-ins, or cripples the power of developing administrative plug-ins. (I haven't dug deep enough into Ur/Web to understand this aspect of it yet).
+
+This is why Adam said at Emerging Languages Camp that the Ur/Web website is the only commercial entity using this technology. He wants to guarantee too much. This is one argument for why Wadler and his Ph.D. students developed blame (although I did not find anything in their papers suggesting they actually intended blame for this purpose); in a dynamically distributed, dynamically federated system, you need something like blame if you want to type the modules belonging to each distributed federation; otherwise, how will you handle partial failures due to in situ updates? Using Adam's scheme, he has locked himself into "which two" of the CAP Theorem his system can handle (interestingly, Wadler has recently linked to a description of the CAP Theorem on his blog). The idea behind blame is to treat a multi-tier application as a single-tier application, by making the distribution and federation aspects orthogonal to the problem of invoking any surface interface to the system. Wadler covers why he thinks a single-tier application model is the best way to approach simplifying web programming in his original Links grant proposal.
+
+I have also covered, here on LtU, my thoughts on Jif, Doloto, Volta [2], GWT, and Links, especially with regards to developer-guided Code Splitting. There are shreds of good ideas in all these systems (e.g., Volta's use of a common intermediate format AST with attribute grammar-style annotations to the AST). It is not like the people designing these systems are dumb. Rather, it is that dynamically distributed, dynamically federated systems are hard to develop practical formalisms for. The mistakes made in these designs are indicative that it is a tough problem (e.g., how Volta uses attribute grammars is questionable, since it creates a static linker). Overall, Microsoft Research appears to be doing the most to address the difficulties of building these systems [3] [4] [5] [6], and coincidingly creating a potentially great development platform for its Azure cloud services.
+
+[1] But it is still a good idea to use the algebra of programming to our advantage and support something like Strong Types for Relational Data Stored in Databases or Spreadsheets
+[2] Microsoft architect compares Volta and Google's GWT
+[3] Gulfstream: Staged Static Analysis for Streaming JavaScript Applications
+[4] JSMeter: Comparing the Behavior of JavaScript Benchmarks with Real Web Applications
+[5] JSZap: Compressing JavaScript Code
+[6] Doloto: Code Splitting for Network-Bound Web 2.0 Applications
+
+By Z-Bo at Fri, 2010-07-30 17:00 | login or register to post comments
+Ur/Web
+I think you're assuming Ur/Web maintains full expressiveness of the HTML+DOM+JS+Css+XHR technology stack. It does not. It achieves its guarantees, in large part, by limiting its expressiveness.
+
+Ur clearly violates Parr's 5 Rules, since Ur/Web heavily leverages dependent typing to guarantee web apps "don't go wrong".
+
+Why is this a problem?
+
+By dmbarbour at Fri, 2010-07-30 18:09 | login or register to post comments
+It may not be
+I haven't used Ur/Web enough to really know what a "good" Ur/Web app looks like, in terms of source code and functional dependencies.
+
+I think you're assuming Ur/Web maintains full expressiveness of the HTML+DOM+JS+Css+XHR technology stack.
+
+A good framework should automatically maintain your "image" for you. Your "image" should include handling all of Steve Souders rules for you, as much as possible, such as rolling out static content before dynamic content. These heuristics minimizes CAP Theorem consistency issues. It is simply good design.
+
+By Z-Bo at Fri, 2010-07-30 18:38 | login or register to post comments
+Blame
+you need something like blame if you want to type the modules belonging to each distributed federation; otherwise, how will you handle partial failures due to in situ updates?
+
+It is unclear to me how 'blame' relates to 'failure handling and recovery'. The only application of blame I can think of is to break a business relationship, or otherwise invoke penalties, after a contract violation.
+
+The idea behind blame is to treat a multi-tier application as a single-tier application, by making the distribution and federation aspects orthogonal to the problem of invoking any surface interface to the system.
+
+Funny how similar that is to the idea behind orthogonal distribution. :-)
+
+By dmbarbour at Fri, 2010-07-30 18:22 | login or register to post comments
+I was thinking more along
+I was thinking more along the lines of a set of high-level UI widgets with a straightforward translation to (X)HTML; the verification of HTML conformance for primitive controls is a manual process, but all compositions thereof should be fine.
+
+That's the approach I'm taking in my web framework anyway, but the layout is specified in the code itself using stack and flow containers, and reactive expressions programmatically maintain all properties.
+
+I make no use of a separate template language, which would seem to violate points 2-4, and yet correct usage is checked by the C# compiler, so points 2-4 don't seem to apply anyway.
+
+By naasking at Fri, 2010-07-30 02:12 | login or register to post comments
+What does your high-level UI widget for a "data grid" look like?
+Most systems these days struggle to deal with multi-dimensional result sets from ad-hoc data sources. They also struggle with modular definition of interactive behavior in these widgets.
+
+For example, ASP.NET (and any MSFT data grid ever invented, it seems), assumes the "data bound grid control" fallacy, where the view has to know something about the model in order to be used successfully (this is bad for partial failure and also faceted materialization of the results, thus being a poor match for any UI connected to an object capability model). This is an extremely stupid way to design a data grid that only MSFT would continually re-invent every generation since VB Classic. Most models for grids also have poor support for internationalization. PilferPage tried to be an exception, aiming for also allowing automatic display of diagonal table headings, including multi-row diagonalization.
+
+Much better systems than ASP.NET also include Squeak's Skeleton system and Ext.js Grids.
+
+Basically, I can't evaluate your system without looking at it, and I am unaware of you publishing a full-fledged web framework. But at least I can throw some tests at you that from experience are what I use to measure how well the UI is abstracted. (I've told David Barbour several times that one of my "Gold Standard Tests" for a UI toolkit is a simple declarative composable specification approximating the functionality of the Hyperion ProClarity Decomposition Tree.)
+
+yet correct usage is checked by the C# compiler
+
+How so?
+
+By Z-Bo at Fri, 2010-07-30 17:10 | login or register to post comments
+Most systems these days
+Most systems these days struggle to deal with multi-dimensional result sets from ad-hoc data sources.
+
+As I said, it's all in code, so the table shape is arbitrary. For instance:
+
+var keyword = new TextBox();
+var submit = new Button { Text = "Search" };
+var grid = new Grid
+{
+  Rows = submit.Clicks.Select(click => {
+           var results = /* search data source for keyword */
+           return results.Select(item =>
+             new Row { new Cell { item.Foo }, new Cell { item.Bar }, new Cell { item.Baz[2] } });
+         },
+};
+return new Window("Search by keyword") {
+  new Flow { keyword, submit, }  // flow-based arrangement
+  grid,                          // use Stack to force vertical
+};
+This is a complete page declaration, including layout and all interactive behaviour (there are widget properties for margins, colours, etc.). Every UI widget is a reactive expression ala Rx.NET. GET requests return a flat representation of the state, eg. full HTML page rendered. POST or PUT requests simply compute updates to this state and return only changes, eg. JSON, XML, HTML fragments, etc. -- arbitrary backends can be defined.
+
+By "correct usage", I mean that the composition of UI elements is strongly typed, ie. Grid.Rows only accepts Row objects, which only accepts Cells, Window accepts arbitrary UI elements and defaults to either Flow or Stack (haven't decided), TextBox accepts no child elements, etc.
+
+Hopefully this is enough to answer your questions. I haven't published anything since I'm still fleshing out aspects related to security, but the UI model is fairly well defined. I think this meets the criteria for a declarative UI model, but it does not separate view from controller, and would seem to violate those rules I mentioned.
+
+By naasking at Fri, 2010-07-30 18:37 | login or register to post comments
+Full Review Later
+The first thing I see in your code is:
+
+var submit = new Button { Text = "Search" };
+var grid = new Grid
+{
+  Rows = submit.Clicks.Select(click => {
+           var results = /* search data source for keyword */
+           return results.Select(item =>
+             new Row { new Cell { item.Foo }, new Cell { item.Bar }, new Cell { item.Baz[2] } });
+         },
+};
+You are tightly coupling your Grid to your Submit logic. In Parr's system, you separate this out so that they are each lambda expressions with no free variables. If they are going to synchronize with one another, then you abstract out that synchronization into its own domain. This way, you are in conformance with Clemens Szyperski's domaincasting principle for component-oriented programming, which basically states you should only route events through the correct layer in the domain. (Most people wrongly infer that the issue is broadcasting vs. narrowcasting, which is not the case. A given domain can successfully employ a blackboard pattern, if the problem calls for it, but if the UI is allowed access into that domain, then you pollute your code with cross-module dependencies).
+
+I see at least one other thing to nitpick:
+
+           return results.Select(item =>
+             new Row { new Cell { item.Foo }, new Cell { item.Bar }, new Cell { item.Baz[2] } });
+The grid has to have the data source formatted for it. The data source is exposing its representation to the grid. This is a no-no for some next generation stuff I am working on, precisely because it limits mash-ups, which are just the sort of collaboration tool that sells like crack in software demoes (even if nobody ever uses it once they buy the product). -- Apologies to those here who find that crass.
+
+By Z-Bo at Fri, 2010-07-30 19:02 | login or register to post comments
+The grid has to have the
+The grid has to have the data source formatted for it. The data source is exposing its representation to the grid. This is a no-no for some next generation stuff I am working on, precisely because it limits mash-ups
+
+I'm not sure how it inhibits mashups. If anything, mashups are trivial in this framework.
+
+I'll admit I don't understand the rationale behind any of the points you brought up, but I'll be sure to look up the sources you cited.
+
+By naasking at Fri, 2010-07-30 22:01 | login or register to post comments
