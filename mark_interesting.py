@@ -1,20 +1,21 @@
 import curses, shutil, os
 
+categories_path = os.path.join('stuff/categories')
 
 def main(stdscr):
   # Wipe categories and read list of paths.
 
-  if os.path.exists('categories'):
-    shutil.rmtree('categories')
-  os.mkdir('categories')
-  with open('paths.txt') as f:
+  if os.path.exists(categories_path):
+    assert os.path.basename(categories_path) == 'categories'
+    shutil.rmtree(categories_path)
+  os.mkdir(categories_path)
+  with open('stuff/paths.txt') as f:
     text = f.read()
-
-  h, w, y, x = 0, 0, 1, 0
-  text_win = stdscr.subwin(h, w, y, x)
 
   # Use arrow keys to classify paths and write them to interesting or not files.
 
+  h, w, y, x = 0, 0, 1, 0
+  text_win = stdscr.subwin(h, w, y, x)
   for curr_path in text.splitlines():
     with open(curr_path) as f:
       text = f.read()
@@ -29,13 +30,15 @@ def main(stdscr):
       text_win.addstr(1, 0, str(e), curses.A_REVERSE)
     c = stdscr.getch()
     if c == curses.KEY_LEFT:
-      with open(os.path.join('categories', 'interesting.txt'), 'a') as f:
-        f.write(curr_path)
+      append('interesting', curr_path)
     elif c == curses.KEY_RIGHT:
-      with open(os.path.join('categories', 'not-interesting.txt'), 'a') as f:
-        f.write(curr_path)
+      append('not-interesting', curr_path)
     elif c == ord('q'):
         break
+
+def append(basename, path):
+  with open(os.path.join(categories_path, '{}.txt'.format(basename)), 'a') as f:
+    f.write(path)
 
 if __name__ == '__main__':
   curses.wrapper(main)
