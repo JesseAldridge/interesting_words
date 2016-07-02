@@ -1,11 +1,13 @@
-import re
+import json, re
 
 from stemming import porter2
 
 
-with open('10K-english-usa.txt') as f:
+
+with open('stuff/stem_to_count.json') as f:
   text = f.read()
-common_words = set(text.splitlines())
+stem_to_count = json.loads(text)
+
 
 stem_to_word = {}
 def stem(word, word_to_stem={}):
@@ -15,10 +17,10 @@ def stem(word, word_to_stem={}):
     stem_to_word[word_to_stem[word]] = word
   return word_to_stem[word]
 
-with open('lambda_the_ultimate.txt') as f:
+with open('stuff/lambda_the_ultimate.txt') as f:
   text = f.read()
 
-words = (word.strip("'") for word in re.findall("([\w']+)", text) if word not in common_words)
+words = (word.strip("'") for word in re.findall("([\w']+)", text) if word not in stem_to_word)
 tokens = [stem(word.lower()) for word in words]
 
 token_to_count = {}
