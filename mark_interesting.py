@@ -14,15 +14,16 @@ def main(stdscr):
 
   # Use arrow keys to classify paths and write them to interesting or not files.
 
-  h, w, y, x = 0, 0, 1, 0
+  h, w, y, x = 0, 0, 2, 0
   text_win = stdscr.subwin(h, w, y, x)
   for curr_path in text.splitlines():
     with open(curr_path) as f:
       text = f.read()
     stdscr.clear()
     stdscr.addstr(0, 0, curr_path)
+    stdscr.addstr(1, 0, '<- no          yes ->')
     try:
-      text_win.addstr(1, 0, text)
+      text_win.addstr(1, 0, '\n'.join(text.splitlines()[:10]))
     except TypeError:
       pass
     except Exception as e:
