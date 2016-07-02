@@ -33,6 +33,12 @@ def walk_dir(root_path):
     else:
       yield child_path
 
+def build_categories():
+  if not os.path.exists(Category.categories_path):
+    os.mkdir(Category.categories_path)
+  return (Category(name) for name in ('interesting', 'not-interesting'))
+
+
 def main(stdscr):
   def debugger():
     curses.nocbreak()
@@ -41,9 +47,7 @@ def main(stdscr):
     curses.endwin()
     import pdb; pdb.set_trace()
 
-  if not os.path.exists(Category.categories_path):
-    os.mkdir(Category.categories_path)
-  interesting, not_interesting = (Category(name) for name in ('interesting', 'not-interesting'))
+  interesting, not_interesting = build_categories()
 
   # Use arrow keys to classify paths and write them to interesting or not files.
 
